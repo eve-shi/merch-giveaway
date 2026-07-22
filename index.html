@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Розыгрыш мерча</title>
+<style>
+@font-face {
+  font-family: 'OmegaUI';
+  src: url('assets/fonts/OmegaUI-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;overflow:hidden}
+body{
+  font-family:'OmegaUI',-apple-system,BlinkMacSystemFont,sans-serif;
+  height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  color:#fff;background:#1a7fd4;
+}
+
+.bg{
+  position:fixed;inset:0;z-index:0;
+  background-image:url("assets/fon.png");
+  background-size:cover;background-position:center top;background-repeat:no-repeat;
+}
+
+.screen{display:none;min-height:100%;flex-direction:column;position:relative;z-index:1}
+.screen.active{display:flex}
+
+/* LOGO */
+.logo-wrap{display:flex;justify-content:center;padding:44px 0 0}
+.logo-para{width:36px;height:20px;background:#fff;clip-path:polygon(15% 0%,100% 0%,85% 100%,0% 100%)}
+.footer{text-align:center;font-size:12px;line-height:1.5;opacity:.55;padding:0 24px env(safe-area-inset-bottom, 20px);padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 20px);margin-top:auto}
+
+/* ══ LOGIN ══ */
+.login-mid{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px 24px 16px}
+.login-title{font-size:34px;font-weight:400;letter-spacing:-.01em;text-align:center;margin-bottom:14px}
+.login-sub{font-size:16px;text-align:center;opacity:.9;margin-bottom:20px}
+.login-card{width:100%;background:#fff;border-radius:22px;padding:24px 20px 20px;color:#1a1a2e}
+.lc-label{font-size:13px;color:#888;margin-bottom:4px;display:block}
+.lc-input{width:100%;border:none;border-bottom:1.5px solid #e0e0e0;padding:10px 0;font-size:16px;color:#1a1a2e;font-family:inherit;outline:none;background:transparent;margin-bottom:18px}
+.lc-input::placeholder{color:#bbb}
+.lc-input:focus{border-bottom-color:#1a7fd4}
+.lc-error{font-size:13px;color:#e53935;margin:-10px 0 10px}
+.btn-grad{
+  width:100%;border:none;border-radius:11px;padding:15px;
+  font-size:14px;font-family:inherit;letter-spacing:normal;
+  cursor:pointer;color:#fff;
+  background:linear-gradient(90deg,#24A0F2 0%,#0026AA 100%);
+  transition:transform .1s,opacity .1s;
+  text-transform:uppercase;
+}
+.btn-grad:active{transform:scale(.97)}
+.btn-grad:disabled{opacity:.4;cursor:default}
+.admin-row{text-align:center;padding:14px 0 6px}
+.admin-link{font-size:12px;opacity:.4;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* ══ SPIN ══ */
+#screen-spin{
+  background-image:url("assets/fon2.png");
+  background-size:cover;background-position:center top;background-repeat:no-repeat;
+}
+
+.reel-section{
+  flex:1;position:relative;background:transparent;overflow:hidden;min-height:240px;
+}
+
+/* стрелки — SVG файлы из assets */
+.arr{position:absolute;top:50%;transform:translateY(-50%);z-index:20;pointer-events:none;line-height:0}
+.arr-l{left:10px}
+.arr-r{right:10px}
+.arr img{width:54px;height:59px;display:block}
+
+/* фэйд сверху/снизу на белом */
+.reel-ft{position:absolute;top:0;left:0;right:0;height:120px;z-index:5;background:linear-gradient(to bottom,rgba(255,255,255,.7) 0%,transparent 100%);pointer-events:none}
+.reel-fb{position:absolute;bottom:0;left:0;right:0;height:120px;z-index:5;background:linear-gradient(to top,rgba(255,255,255,.7) 0%,transparent 100%);pointer-events:none}
+
+.reel-inner{position:absolute;inset:0;display:flex;justify-content:center;overflow:hidden}
+.reel-track{display:flex;flex-direction:column;align-items:center;will-change:transform}
+.reel-item{width:100vw;max-width:480px;height:240px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 80px}
+.reel-item img{max-width:100%;max-height:220px;object-fit:contain;mix-blend-mode:multiply}
+
+/* нижняя панель — прозрачная */
+.spin-bottom{padding:14px 24px calc(env(safe-area-inset-bottom, 0px) + 20px);background:transparent}
+
+/* кнопка — plashka.svg как фон */
+.spin-btn-wrap{position:relative;width:100%;height:54px;margin-bottom:14px}
+.spin-btn-bg{
+  position:absolute;inset:0;width:100%;height:100%;
+  border:none;border-radius:13px;cursor:pointer;
+  background:linear-gradient(90deg,#24A0F2 0%,#0026AA 100%);
+  transition:transform .1s,opacity .1s;
+}
+.spin-btn-bg:active{transform:scale(.97)}
+.spin-btn-bg:disabled{opacity:.4;cursor:default}
+.spin-btn-txt{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:17px;letter-spacing:.06em;color:#fff;pointer-events:none;
+  font-family:'OmegaUI',-apple-system,sans-serif;
+}
+
+/* счётчик и пилюля */
+.ctr-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ctr-num{font-size:22px;color:#24A0F2;flex-shrink:0}
+.won-pill{
+  display:flex;align-items:center;gap:8px;
+  border:1px solid #e0e0e0;border-radius:100px;padding:6px 14px;
+  font-size:13px;color:#1a1a2e;flex-wrap:wrap;
+}
+.won-sep{width:6px;height:6px;border-radius:50%;background:#24A0F2;flex-shrink:0}
+.info-row{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:rgba(0,0,0,.45)}
+
+/* ══ DONE ══ */
+.done-mid{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 24px;text-align:center}
+.done-big{font-size:58px;margin-bottom:22px}
+.done-card{background:#fff;border:none;border-radius:20px;padding:20px 24px;font-size:16px;line-height:1.6;margin-bottom:16px;color:#444;width:100%}
+.done-note{font-size:14px;opacity:.7;line-height:1.55;text-align:center}
+.btn-outline{width:100%;margin-top:24px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.45);border-radius:14px;padding:16px;font-size:14px;font-family:inherit;cursor:pointer}
+.btn-outline:active{background:rgba(255,255,255,.1)}
+
+/* ══ ADMIN ══ */
+.admin-body{flex:1;padding:48px 20px 36px}
+.admin-title{font-size:24px;margin-bottom:16px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-box{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px 16px}
+.stat-lbl{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stat-val{font-size:30px}
+.act-row{display:flex;gap:8px;margin-bottom:14px}
+.btn-sm{padding:9px 16px;border-radius:10px;font-size:13px;cursor:pointer;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-family:inherit}
+.btn-sm.red{border-color:#ff6b6b;color:#ff8a8a}
+.tbl-box{overflow-x:auto;border-radius:14px;border:1px solid rgba(255,255,255,.18)}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:320px}
+th{background:rgba(255,255,255,.12);color:rgba(255,255,255,.75);padding:9px 12px;text-align:left}
+td{padding:9px 12px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.88)}
+.back-btn{font-size:13px;opacity:.6;cursor:pointer;margin-bottom:16px;display:inline-block}
+
+.consent-row{
+  display:flex;align-items:flex-start;gap:10px;
+  margin-top:14px;cursor:pointer;
+}
+.consent-row input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;
+  width:20px;height:20px;min-width:20px;border-radius:6px;
+  border:1.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);
+  cursor:pointer;position:relative;margin-top:1px;
+}
+.consent-row input[type="checkbox"]:checked{
+  background:#fff;border-color:#fff;
+}
+.consent-row input[type="checkbox"]:checked::after{
+  content:'';position:absolute;left:5px;top:2px;
+  width:6px;height:10px;border:2px solid #1a7fd4;
+  border-top:none;border-left:none;transform:rotate(45deg);
+}
+.consent-txt{font-size:13px;color:rgba(255,255,255,.85);line-height:1.45}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(10,25,70,.85);color:#fff;padding:13px 24px;border-radius:100px;font-size:14px;z-index:999;opacity:0;transition:opacity .22s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+
+/* ══ STAR BURST ══ */
+.star-particle{
+  position:fixed;width:56px;height:56px;
+  background-image:url("assets/starr.png");
+  background-size:contain;background-repeat:no-repeat;
+  pointer-events:none;z-index:9999;
+  animation:starFly 1.5s linear forwards;
+}
+@keyframes starFly{
+  0%  {transform:translate(0,0) rotate(0deg);opacity:1;
+       animation-timing-function:cubic-bezier(0.215,0.61,0.355,1)}
+  42% {transform:translate(var(--dx),var(--peak)) rotate(var(--rot-mid));opacity:1;
+       animation-timing-function:cubic-bezier(0.55,0.055,0.675,0.19)}
+  100%{transform:translate(var(--dx-end),var(--dy)) rotate(var(--rot));opacity:0}
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="logo-wrap"><div class="logo-para"></div></div>
+  <div class="login-mid">
+    <div class="login-title">🎁 Розыгрыш мерча</div>
+    <div class="login-sub">Введи свои данные, чтобы начать</div>
+    <div class="login-card">
+      <label class="lc-label">ФИО</label>
+      <input class="lc-input" id="inp-name" type="text" placeholder="Иванов Иван Иванович" autocomplete="off">
+      <label class="lc-label">Номер рабочего стола для получения мерча. <span id="no-desk-link" onclick="toggleNoDesk()" style="color:#1a7fd4;cursor:pointer">У меня нет номера :(</span></label>
+      <div id="no-desk-hint" style="display:none;font-size:12px;color:#aaa;margin:2px 0 10px;line-height:1.45">Если у вас нет номера стола — введите имя руководителя вместо него, чтобы вам передали мерч</div>
+      <input class="lc-input" id="inp-seat" type="text" placeholder="например: А-205" autocomplete="off">
+      <label class="lc-label">Корпоративная почта</label>
+      <input class="lc-input" id="inp-email" type="email" placeholder="ivanov@vtb.ru" autocomplete="off">
+      <div id="login-error" class="lc-error" style="display:none"></div>
+      <button class="btn-grad" id="btn-login" onclick="doLogin()">получить мерч</button>
+    </div>
+    <label class="consent-row">
+      <input type="checkbox" id="inp-consent">
+      <span class="consent-txt">Я согласен(а) на обработку персональных данных</span>
+    </label>
+  </div>
+<div class="footer">департамент<br>цифрового бизнеса</div>
+</div>
+
+<!-- SPIN -->
+<div id="screen-spin" class="screen">
+  <div class="reel-section" id="reel-section">
+    <div class="arr arr-l"><img src="assets/arrow1.svg" alt=""></div>
+    <div class="arr arr-r"><img src="assets/arrow2.svg" alt=""></div>
+    <div class="reel-ft"></div>
+    <div class="reel-fb"></div>
+    <div class="reel-inner">
+      <div class="reel-track" id="reel-track"></div>
+    </div>
+  </div>
+
+  <div class="spin-bottom">
+    <div class="spin-btn-wrap">
+      <button class="spin-btn-bg" id="btn-spin" onclick="doSpin()"></button>
+      <div class="spin-btn-txt" id="spin-btn-txt">крутить!</div>
+    </div>
+    <div class="ctr-row">
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div class="ctr-num" id="ctr-num">2/2</div>
+        <span style="font-size:12px;color:rgba(0,0,0,.45)">позиций</span>
+      </div>
+      <div class="won-pill" id="won-pill" style="display:none"></div>
+    </div>
+    <div class="info-row">
+      <span id="info-name">фио</span>
+      <span id="info-seat">номер раб. стола</span>
+    </div>
+  </div>
+</div>
+
+<!-- DONE -->
+<div id="screen-done" class="screen" style="background-image:url('assets/fon3.png');background-size:cover;background-position:center top;background-repeat:no-repeat">
+  <div class="logo-wrap"><div class="logo-para"></div></div>
+  <div class="done-mid">
+    <div class="done-big">Ура!</div>
+    <div class="done-card" id="done-card"></div>
+    <div class="done-note">Каждый участник розыгрыша получает базовый набор мерча и два случайных предмета из розыгрыша. Ожидайте свой пак мерча, его доставят вам на стол или передадут вашему руководителю :)</div>
+  </div>
+  <div class="footer">департамент<br>цифрового бизнеса</div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin" class="screen">
+  <div class="admin-body">
+    <span class="back-btn" onclick="goBack()">← назад</span>
+    <div class="admin-title">Результаты</div>
+    <div class="stat-grid" id="admin-stats"></div>
+    <div class="act-row">
+      <button class="btn-sm" onclick="exportCSV()">⬇ скачать CSV</button>
+      <button class="btn-sm red" onclick="clearData()">очистить всё</button>
+    </div>
+    <div class="tbl-box">
+      <table>
+        <thead><tr><th>ФИО</th><th>Место</th><th>Почта</th><th>Мерч 1</th><th>Мерч 2</th><th>Дата</th></tr></thead>
+        <tbody id="admin-tbody"><tr><td colspan="6" style="text-align:center;padding:20px;opacity:.5">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTtc_s5CT35yKHW1oULfpoNxW9yTPU44x_86pl_H60GdQSlq5enkixKNoIGH4E5hVc/exec';  // ← сюда URL задеплоенного Apps Script
+
+const MERCH=[
+  {name:"Маска для сна", img:"assets/mask.png"},
+  {name:"Шопер",         img:"assets/shopper.png"},
+  {name:"Футболка",      img:"assets/tshirt.png"},
+  {name:"Блокнот",       img:"assets/copybook.png"},
+];
+const MAX=2, ITEM_H=240;
+let user=null,spinning=false,won=[],used=0;
+
+async function sbCheck(n,s){
+  const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}`);
+  const d=await r.json();
+  return d.exists;
+}
+async function sbInsert(row){
+  const r=await fetch(`${SCRIPT_URL}?action=insert&name=${encodeURIComponent(row.name)}&seat=${encodeURIComponent(row.seat)}&email=${encodeURIComponent(row.email||'')}&merch_1=${encodeURIComponent(row.merch_1||'')}&merch_2=${encodeURIComponent(row.merch_2||'')}`);
+  if(!r.ok)throw new Error('insert failed');
+}
+async function sbAll(){
+  const r=await fetch(`${SCRIPT_URL}?action=all`);
+  return r.json();
+}
+async function sbDel(){
+  await fetch(`${SCRIPT_URL}?action=deleteAll`);
+}
+
+function toggleNoDesk(){
+  const hint=document.getElementById("no-desk-hint");
+  hint.style.display=hint.style.display==="none"?"block":"none";
+}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");window.scrollTo(0,0)}
+function toast(msg,dur=2600){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),dur)}
+function setErr(msg){const e=document.getElementById("login-error");e.textContent=msg;e.style.display=msg?"block":"none"}
+
+async function doLogin(){
+  const name=document.getElementById("inp-name").value.trim();
+  const seat=document.getElementById("inp-seat").value.trim();
+  const email=document.getElementById("inp-email").value.trim();
+  const consent=document.getElementById("inp-consent").checked;
+  if(!name||!seat||!email){setErr("Заполни все поля");return}
+  if(!email.includes("@")){setErr("Введи корректную почту");return}
+  if(!consent){setErr("Необходимо согласие на обработку данных");return}
+  setErr("");
+  const btn=document.getElementById("btn-login");
+  btn.disabled=true;btn.textContent="Проверяем...";
+  try{
+    if(await sbCheck(name,seat)){setErr("Этот участник уже прошёл розыгрыш.");btn.disabled=false;btn.textContent="получить штуки";return}
+  }catch(e){setErr("Ошибка соединения. Проверь интернет.");btn.disabled=false;btn.textContent="получить штуки";return}
+  user={name,seat,email};won=[];used=0;
+  btn.disabled=false;btn.textContent="получить штуки";
+  initSpin();show("screen-spin");
+}
+
+function buildReel(){
+  const t = document.getElementById("reel-track");
+  t.innerHTML = "";
+  // Создаём стартовый набор элементов (чуть больше, чтобы заполнить экран)
+  for (let i = 0; i < 20; i++) {
+    const m = MERCH[i % MERCH.length];
+    const d = document.createElement("div");
+    d.className = "reel-item";
+    d.innerHTML = `<img src="${m.img}" alt="${m.name}">`;
+    t.appendChild(d);
+  }
+}
+function posReel(idx,anim,dur){
+  const t=document.getElementById("reel-track");
+  const oh=document.getElementById("reel-section").offsetHeight||500;
+  const y=oh/2-ITEM_H/2-idx*ITEM_H;
+  t.style.transition=anim?`transform ${dur}s cubic-bezier(0.23,1,0.32,1)`:"none";
+  t.style.transform=`translateY(${y}px)`;
+}
+function updateUI(){
+  document.getElementById("ctr-num").textContent=`${MAX-used}/${MAX}`;
+  const pill=document.getElementById("won-pill");
+  if(won.length>0){
+    pill.style.display="flex";
+    pill.innerHTML=won.map((w,i)=>(i>0?'<span class="won-sep"></span>':"")+`<span>${w.name}</span>`).join("");
+  }else pill.style.display="none";
+}
+function setLabel(txt){document.getElementById("spin-btn-txt").textContent=txt}
+
+function initSpin(){
+  document.getElementById("info-name").textContent=user.name;
+  document.getElementById("info-seat").textContent=user.seat;
+  updateUI();buildReel();posReel(0,false,0);
+  document.getElementById("btn-spin").disabled=false;setLabel("крутить!");
+}
+
+function burstStars(btn){
+  const r=btn.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const count=5;
+  for(let i=0;i<count;i++){
+    const el=document.createElement("div");
+    el.className="star-particle";
+    const spreadX=(i-(count-1)/2)*(56+Math.random()*16);
+    const peakY=-(200+Math.random()*60);
+    const fallY=window.innerHeight-cy+80;
+    el.style.left=(cx-28)+"px";
+    el.style.top=(cy-28)+"px";
+    el.style.setProperty("--dx",spreadX+"px");
+    el.style.setProperty("--peak",peakY+"px");
+    el.style.setProperty("--dx-end",spreadX+"px");
+    el.style.setProperty("--dy",fallY+"px");
+    el.style.setProperty("--rot-mid",(Math.random()*120-60)+"deg");
+    el.style.setProperty("--rot",(Math.random()*360-180)+"deg");
+    el.style.animationDelay=(i*0.04)+"s";
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1700);
+  }
+}
+
+function doSpin() {
+  if (spinning || used >= MAX) return;
+  burstStars(document.getElementById("btn-spin"));
+  spinning = true;
+  document.getElementById("btn-spin").disabled = true;
+
+  // 1. Сбрасываем трек в начальное положение БЕЗ анимации
+  posReel(0, false, 0);
+
+  // 2. Рассчитываем параметры вращения
+  const itemsInCycle = MERCH.length; // 4
+  const rounds = 6 + Math.floor(Math.random() * 4); // от 6 до 9 полных кругов
+  const targetIdx = Math.floor(Math.random() * itemsInCycle); // индекс выигрышного мерча (0-3)
+  
+  // Итоговый индекс элемента, к которому нужно прикрутить
+  const scrollTo = (rounds * itemsInCycle) + targetIdx;
+  const dur = 3.5; // Сделаем прокрутку чуть более плавной и солидной
+
+  // 3. Динамически пересобираем трек нужной длины, чтобы картинки не кончались
+  const t = document.getElementById("reel-track");
+  t.innerHTML = "";
+  // Заполняем трек с запасом (+5 элементов после точки остановки)
+  for (let i = 0; i <= scrollTo + 5; i++) {
+    const m = MERCH[i % itemsInCycle];
+    const d = document.createElement("div");
+    d.className = "reel-item";
+    d.innerHTML = `<img src="${m.img}" alt="${m.name}">`;
+    t.appendChild(d);
+  }
+
+  // 4. Запускаем анимацию на следующем кадре анимации, чтобы браузер успел применить сброс (0)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      posReel(scrollTo, true, dur);
+    });
+  });
+
+  // 5. Обработка результатов по окончании анимации
+  setTimeout(() => {
+    const item = MERCH[targetIdx];
+
+    // Проверка на дубликат мерча
+    if (won.some(w => w.name === item.name)) {
+      toast("Такой мерч уже есть! Крути ещё раз 🔄", 3000);
+      spinning = false;
+      document.getElementById("btn-spin").disabled = false;
+      // Мягко возвращаем на старт для повторного круга
+      posReel(0, false, 0);
+      return;
+    }
+
+    used++;
+    won.push(item);
+    updateUI();
+    toast(`🎉 ${item.name}!`);
+
+    if (used >= MAX) {
+      setLabel("Сохраняем...");
+      setTimeout(finish, 1000);
+    } else {
+      spinning = false;
+      document.getElementById("btn-spin").disabled = false;
+      setLabel("крутить ещё!");
+    }
+  }, dur * 1000 + 100);
+}
+async function finish(){
+  try{
+    await sbInsert({name:user.name,seat:user.seat,email:user.email||'',merch_1:won[0]?.name||null,merch_2:won[1]?.name||null});
+  }catch(e){toast("Ошибка сохранения! Запишите мерч вручную.",5000)}
+  document.getElementById("done-card").textContent=
+    `${user.name}, номер стола — ${user.seat}. Вы выиграли: ${won.map(w=>w.name).join(", ")}`;
+  show("screen-done");spinning=false;
+}
+
+async function showAdmin(){
+  show("screen-admin");
+  const rows=await sbAll();
+  document.getElementById("admin-tbody").innerHTML=rows.length===0
+    ?"<tr><td colspan='5' style='text-align:center;padding:20px;opacity:.5'>Нет данных</td></tr>"
+    :rows.map(r=>`<tr><td>${r.name}</td><td>${r.seat}</td><td>${r.email||"—"}</td><td>${r.merch_1||"—"}</td><td>${r.merch_2||"—"}</td><td>${r.created_at?r.created_at.slice(0,10):"—"}</td></tr>`).join("");
+  const items=rows.reduce((s,r)=>(s+(r.merch_1?1:0)+(r.merch_2?1:0)),0);
+  document.getElementById("admin-stats").innerHTML=`
+    <div class="stat-box"><div class="stat-lbl">Участников</div><div class="stat-val">${rows.length}</div></div>
+    <div class="stat-box"><div class="stat-lbl">Позиций выдано</div><div class="stat-val">${items}</div></div>`;
+}
+async function exportCSV(){
+  const rows=await sbAll();if(!rows.length){toast("Нет данных");return}
+  let csv="ФИО,Место,Почта,Мерч 1,Мерч 2,Дата\n";
+  rows.forEach(r=>csv+=`"${r.name}","${r.seat}","${r.email||""}","${r.merch_1||""}","${r.merch_2||""}","${r.created_at?r.created_at.slice(0,10):""}"\n`);
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));
+  a.download="merch_results.csv";a.click();toast("CSV скачан ✓");
+}
+async function clearData(){
+  if(!confirm("Удалить ВСЕ результаты?"))return;
+  await sbDel();toast("Данные удалены");showAdmin();
+}
+function goBack(){
+  user=null;
+  document.getElementById("inp-name").value="";
+  document.getElementById("inp-seat").value="";
+  document.getElementById("inp-email").value="";
+  show("screen-login");
+}
+</script>
+</body>
+</html>
