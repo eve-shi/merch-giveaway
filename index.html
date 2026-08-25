@@ -279,6 +279,10 @@ const MERCH=[
   {name:"Блокнот",       img:"assets/copybook.png"},
 ];
 const MAX=2, ITEM_H=240;
+  function isValidEmail(email){
+  const re = /^[a-zA-Z0-9._%+-]+@vtb\.ru$/i;
+  return re.test(email.trim());
+}
 let user=null,spinning=false,won=[],used=0;
 
 async function sbCheck(n,s){
@@ -312,7 +316,7 @@ async function doLogin(){
   const email=document.getElementById("inp-email").value.trim();
   const consent=document.getElementById("inp-consent").checked;
   if(!name||!seat||!email){setErr("Заполните все поля");return}
-  if(!email.includes("@")){setErr("Введите корректную почту");return}
+if(!isValidEmail(email)){setErr("Разрешены только адреса на домене vtb.ru");return}
   if(!consent){setErr("Необходимо согласие на обработку данных");return}
   setErr("");
   const btn=document.getElementById("btn-login");
