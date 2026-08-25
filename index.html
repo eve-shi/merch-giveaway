@@ -185,7 +185,7 @@ td{padding:9px 12px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,25
   <div class="logo-wrap"><div class="logo-para"></div></div>
   <div class="login-mid">
     <div class="login-title">🎁 Розыгрыш мерча</div>
-    <div class="login-sub">Введи свои данные, чтобы начать</div>
+    <div class="login-sub">Введите свои данные, чтобы начать</div>
     <div class="login-card">
       <label class="lc-label">ФИО</label>
       <input class="lc-input" id="inp-name" type="text" placeholder="Иванов Иван Иванович" autocomplete="off">
@@ -199,7 +199,7 @@ td{padding:9px 12px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,25
     </div>
     <label class="consent-row">
       <input type="checkbox" id="inp-consent">
-      <span class="consent-txt">Я согласен(а) на обработку персональных данных</span>
+      <span class="consent-txt">Соглашаюсь на обработку персональных данных</span>
     </label>
   </div>
 <div class="footer">департамент<br>розничных цифровых сервисов</div>
@@ -310,8 +310,8 @@ async function doLogin(){
   const seat=document.getElementById("inp-seat").value.trim();
   const email=document.getElementById("inp-email").value.trim();
   const consent=document.getElementById("inp-consent").checked;
-  if(!name||!seat||!email){setErr("Заполни все поля");return}
-  if(!email.includes("@")){setErr("Введи корректную почту");return}
+  if(!name||!seat||!email){setErr("Заполните все поля");return}
+  if(!email.includes("@")){setErr("Введите корректную почту");return}
   if(!consent){setErr("Необходимо согласие на обработку данных");return}
   setErr("");
   const btn=document.getElementById("btn-login");
