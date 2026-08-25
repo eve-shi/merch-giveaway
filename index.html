@@ -274,7 +274,7 @@ justify-content:left;
 
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwjtu6OgaXDTO0dUKiRvKSAVuNAaJWDoHMECJysheLYCFVGShhF7e511fRf0ulBE4Mm/exec';  // ← сюда URL задеплоенного Apps Script
-
+const ADMIN_KEY = 'jsliemsdokaqjsiaolswkazslkadsalksaslkas';
 const MERCH=[
   {name:"Маска для сна", img:"assets/mask.png"},
   {name:"Шопер",         img:"assets/shopper.png"},
@@ -298,11 +298,11 @@ async function sbInsert(row){
   if(!r.ok)throw new Error('insert failed');
 }
 async function sbAll(){
-  const r=await fetch(`${SCRIPT_URL}?action=all`);
+  const r=await fetch(`${SCRIPT_URL}?action=all&key=${encodeURIComponent(ADMIN_KEY)}`);
   return r.json();
 }
 async function sbDel(){
-  await fetch(`${SCRIPT_URL}?action=deleteAll`);
+  await fetch(`${SCRIPT_URL}?action=deleteAll&key=${encodeURIComponent(ADMIN_KEY)}`);
 }
 
 function toggleNoDesk(){
