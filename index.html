@@ -373,6 +373,15 @@ function updateUI(){
 }
 function setLabel(txt){document.getElementById("spin-btn-txt").textContent=txt}
 
+  function weightedPick(items){
+  const total = items.reduce((sum, m) => sum + (stockMap[m.name] ?? 0), 0);
+  let r = Math.random() * total;
+  for (const m of items){
+    r -= (stockMap[m.name] ?? 0);
+    if (r < 0) return m;
+  }
+  return items[items.length - 1]; // fallback for float rounding edge case
+}
 
 async function initSpin(){
   document.getElementById("info-name").textContent=user.name;
@@ -410,11 +419,11 @@ function burstStars(btn){
 function doSpin() {
   if (spinning || used >= MAX) return;
 
-  const available = MERCH.filter(m => (stockMap[m.name] ?? 0) > 0 && !won.some(w => w.name === m.name));
-  if (available.length === 0) {
-    toast("К сожалению, доступный мерч закончился 😔", 3000);
-    return;
-  }
+const available = MERCH.filter(m => (stockMap[m.name] ?? 0) > 0 && !won.some(w => w.name === m.name));
+if (available.length === 0) {
+  toast("К сожалению, доступный мерч закончился 😔", 3000);
+  return;
+}
 
   burstStars(document.getElementById("btn-spin"));
   spinning = true;
@@ -424,7 +433,7 @@ function doSpin() {
 
   const itemsInCycle = MERCH.length;
   const rounds = 6 + Math.floor(Math.random() * 4);
-  const target = available[Math.floor(Math.random() * available.length)];
+  const target = weightedPick(available);
   const targetIdxInFullList = MERCH.findIndex(m => m.name === target.name);
   const scrollTo = (rounds * itemsInCycle) + targetIdxInFullList;
   const dur = 3.5;
