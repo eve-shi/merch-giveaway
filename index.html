@@ -284,6 +284,12 @@ const MERCH=[
   {name:"Футболка",      img:"assets/tshirt.png"},
   {name:"Блокнот",       img:"assets/copybook.png"},
 ];
+const ITEM_SIZE = {
+  "Шопер": "big",
+  "Футболка": "big",
+  "Маска для сна": "small",
+  "Блокнот": "small"
+};
 const MAX=2, ITEM_H=240;
   function isValidEmail(email){
   const re = /^[a-zA-Z0-9._%+-]+@vtb\.ru$/i;
@@ -425,6 +431,13 @@ if (available.length === 0) {
   return;
 }
 
+let pool = available;
+if (won.length > 0) {
+  const oppositeSize = ITEM_SIZE[won[0].name] === "big" ? "small" : "big";
+  const opposite = available.filter(m => ITEM_SIZE[m.name] === oppositeSize);
+  if (opposite.length > 0) pool = opposite;
+}
+
   burstStars(document.getElementById("btn-spin"));
   spinning = true;
   document.getElementById("btn-spin").disabled = true;
@@ -433,7 +446,7 @@ if (available.length === 0) {
 
   const itemsInCycle = MERCH.length;
   const rounds = 6 + Math.floor(Math.random() * 4);
-  const target = weightedPick(available);
+  const target = weightedPick(pool);
   const targetIdxInFullList = MERCH.findIndex(m => m.name === target.name);
   const scrollTo = (rounds * itemsInCycle) + targetIdxInFullList;
   const dur = 3.5;
