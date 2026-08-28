@@ -285,6 +285,13 @@ const MERCH=[
   {name:"Блокнот",       img:"assets/copybook.png"},
 ];
 
+  const MERCH_ACCUSATIVE = {
+  "Маска для сна": "Маску для сна",
+  "Шопер": "Шопер",
+  "Футболка": "Футболку",
+  "Блокнот": "Блокнот"
+};
+  
 const MAX=1, ITEM_H=240;
   function isValidEmail(email){
   const re = /^[a-zA-Z0-9._%+-]+@vtb\.ru$/i;
@@ -489,7 +496,7 @@ async function finish(){
     await sbInsert({name:user.name,seat:user.seat,email:user.email||'',merch_1:won[0]?.name||null,merch_2:won[1]?.name||null});
   }catch(e){toast("Ошибка сохранения! Запишите мерч вручную.",5000)}
   document.getElementById("done-card").textContent=
-    `${user.name}, номер стола — ${user.seat}. Вы выиграли: ${won.map(w=>w.name).join(", ")}`;
+    `${user.name}, номер стола — ${user.seat}. Вы выиграли ${won.map(w=>MERCH_ACCUSATIVE[w.name]||w.name).join(", ")}`;
   show("screen-done");spinning=false;
 }
 
