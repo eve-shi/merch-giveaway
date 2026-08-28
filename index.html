@@ -290,7 +290,8 @@ const MAX=2, ITEM_H=240;
   return re.test(email.trim());
 }
 let user=null,spinning=false,won=[],used=0;
-
+let stockMap={};
+  
 async function sbCheck(n,s,em){
   const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}&email=${encodeURIComponent(em)}`);
   return await r.json();
@@ -307,7 +308,14 @@ async function sbAll(){
 async function sbDel(){
   await fetch(`${SCRIPT_URL}?action=deleteAll&key=${encodeURIComponent(ADMIN_KEY)}`);
 }
-
+async function sbStock(){
+  const r=await fetch(`${SCRIPT_URL}?action=stock`);
+  return r.json();
+}
+async function sbClaim(item){
+  const r=await fetch(`${SCRIPT_URL}?action=claim&item=${encodeURIComponent(item)}`);
+  return r.json();
+}
 function toggleNoDesk(){
   const hint=document.getElementById("no-desk-hint");
   hint.style.display=hint.style.display==="none"?"block":"none";
@@ -366,13 +374,16 @@ function updateUI(){
 }
 function setLabel(txt){document.getElementById("spin-btn-txt").textContent=txt}
 
-function initSpin(){
+
+async function initSpin(){
   document.getElementById("info-name").textContent=user.name;
   document.getElementById("info-seat").textContent=user.seat;
+  stockMap = await sbStock();
   updateUI();buildReel();posReel(0,false,0);
   document.getElementById("btn-spin").disabled=false;setLabel("крутить!");
 }
-
+  
+  
 function burstStars(btn){
   const r=btn.getBoundingClientRect();
   const cx=r.left+r.width/2, cy=r.top+r.height/2;
@@ -399,26 +410,28 @@ function burstStars(btn){
 
 function doSpin() {
   if (spinning || used >= MAX) return;
+
+  const available = MERCH.filter(m => (stockMap[m.name] ?? 0) > 0 && !won.some(w => w.name === m.name));
+  if (available.length === 0) {
+    toast("К сожалению, доступный мерч закончился 😔", 3000);
+    return;
+  }
+
   burstStars(document.getElementById("btn-spin"));
   spinning = true;
   document.getElementById("btn-spin").disabled = true;
 
-  // 1. Сбрасываем трек в начальное положение БЕЗ анимации
   posReel(0, false, 0);
 
-  // 2. Рассчитываем параметры вращения
-  const itemsInCycle = MERCH.length; // 4
-  const rounds = 6 + Math.floor(Math.random() * 4); // от 6 до 9 полных кругов
-  const targetIdx = Math.floor(Math.random() * itemsInCycle); // индекс выигрышного мерча (0-3)
-  
-  // Итоговый индекс элемента, к которому нужно прикрутить
-  const scrollTo = (rounds * itemsInCycle) + targetIdx;
-  const dur = 3.5; // Сделаем прокрутку чуть более плавной и солидной
+  const itemsInCycle = MERCH.length;
+  const rounds = 6 + Math.floor(Math.random() * 4);
+  const target = available[Math.floor(Math.random() * available.length)];
+  const targetIdxInFullList = MERCH.findIndex(m => m.name === target.name);
+  const scrollTo = (rounds * itemsInCycle) + targetIdxInFullList;
+  const dur = 3.5;
 
-  // 3. Динамически пересобираем трек нужной длины, чтобы картинки не кончались
   const t = document.getElementById("reel-track");
   t.innerHTML = "";
-  // Заполняем трек с запасом (+5 элементов после точки остановки)
   for (let i = 0; i <= scrollTo + 5; i++) {
     const m = MERCH[i % itemsInCycle];
     const d = document.createElement("div");
@@ -427,31 +440,28 @@ function doSpin() {
     t.appendChild(d);
   }
 
-  // 4. Запускаем анимацию на следующем кадре анимации, чтобы браузер успел применить сброс (0)
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       posReel(scrollTo, true, dur);
     });
   });
 
-  // 5. Обработка результатов по окончании анимации
-  setTimeout(() => {
-    const item = MERCH[targetIdx];
-
-    // Проверка на дубликат мерча
-    if (won.some(w => w.name === item.name)) {
-      toast("Такой мерч уже есть! Крути ещё раз 🔄", 3000);
+  setTimeout(async () => {
+    const claim = await sbClaim(target.name);
+    if (!claim.ok) {
+      stockMap[target.name] = 0;
+      toast("Этот предмет только что закончился, крути ещё раз 🔄", 3000);
       spinning = false;
       document.getElementById("btn-spin").disabled = false;
-      // Мягко возвращаем на старт для повторного круга
       posReel(0, false, 0);
       return;
     }
+    stockMap[target.name] = claim.remaining;
 
     used++;
-    won.push(item);
+    won.push(target);
     updateUI();
-    toast(`🎉 ${item.name}!`);
+    toast(`🎉 ${target.name}!`);
 
     if (used >= MAX) {
       setLabel("Сохраняем...");
