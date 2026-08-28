@@ -396,7 +396,14 @@ async function initSpin(){
   document.getElementById("info-seat").textContent=user.seat;
   stockMap = await sbStock();
   updateUI();buildReel();posReel(0,false,0);
-  document.getElementById("btn-spin").disabled=false;setLabel("крутить!");
+  const anyLeft = MERCH.some(m => (stockMap[m.name] ?? 0) > 0);
+  if (!anyLeft) {
+    document.getElementById("btn-spin").disabled = true;
+    setLabel("мерч закончился");
+  } else {
+    document.getElementById("btn-spin").disabled = false;
+    setLabel("крутить!");
+  }
 }
   
   
