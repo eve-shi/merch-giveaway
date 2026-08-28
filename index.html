@@ -291,10 +291,10 @@ const MAX=2, ITEM_H=240;
 }
 let user=null,spinning=false,won=[],used=0;
 
-async function sbCheck(n,s){
-  const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}`);
-  const d=await r.json();
-  return d.exists;
+async function sbCheck(n,s,em){
+  const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}&email=${encodeURIComponent(em)}`);
+  return await r.json();
+}
 }
 async function sbInsert(row){
   const r=await fetch(`${SCRIPT_URL}?action=insert&name=${encodeURIComponent(row.name)}&seat=${encodeURIComponent(row.seat)}&email=${encodeURIComponent(row.email||'')}&merch_1=${encodeURIComponent(row.merch_1||'')}&merch_2=${encodeURIComponent(row.merch_2||'')}`);
@@ -327,9 +327,11 @@ if(!isValidEmail(email)){setErr("Разрешены только адреса н
   setErr("");
   const btn=document.getElementById("btn-login");
   btn.disabled=true;btn.textContent="Проверяем...";
-  try{
-    if(await sbCheck(name,seat)){setErr("Этот участник уже прошёл розыгрыш.");btn.disabled=false;btn.textContent="получить штуки";return}
-  }catch(e){setErr("Ошибка соединения. Проверь интернет.");btn.disabled=false;btn.textContent="получить штуки";return}
+ try{
+  const result = await sbCheck(name,seat,email);
+  if(result.exists){setErr("Этот участник уже прошёл розыгрыш.");btn.disabled=false;btn.textContent="получить штуки";return}
+  if(result.emailExists){setErr("Эта почта уже использована для участия.");btn.disabled=false;btn.textContent="получить штуки";return}
+}catch(e){setErr("Ошибка соединения. Проверь интернет.");btn.disabled=false;btn.textContent="получить штуки";return}
   user={name,seat,email};won=[];used=0;
   btn.disabled=false;btn.textContent="получить штуки";
   initSpin();show("screen-spin");
