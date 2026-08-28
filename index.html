@@ -296,7 +296,6 @@ async function sbCheck(n,s,em){
   const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}&email=${encodeURIComponent(em)}`);
   return await r.json();
 }
-}
 async function sbInsert(row){
   const r=await fetch(`${SCRIPT_URL}?action=insert&name=${encodeURIComponent(row.name)}&seat=${encodeURIComponent(row.seat)}&email=${encodeURIComponent(row.email||'')}&merch_1=${encodeURIComponent(row.merch_1||'')}&merch_2=${encodeURIComponent(row.merch_2||'')}`);
   if(!r.ok)throw new Error('insert failed');
