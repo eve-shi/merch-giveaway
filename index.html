@@ -273,7 +273,13 @@ padding:0 20px;
     </div>
   </div>
 </div>
-
+  
+<div id="popup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;color:#1a1a2e;border-radius:20px;padding:28px 24px;max-width:340px;text-align:center">
+    <div id="popup-msg" style="font-size:15px;line-height:1.5;margin-bottom:20px"></div>
+    <button class="btn-grad" id="popup-ok" style="width:auto;padding:12px 32px">Понятно</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -330,6 +336,14 @@ function toggleNoDesk(){
 }
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");window.scrollTo(0,0)}
 function toast(msg,dur=2600){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),dur)}
+  function showPopup(msg, onOk){
+  document.getElementById("popup-msg").textContent = msg;
+  document.getElementById("popup-overlay").style.display = "flex";
+  document.getElementById("popup-ok").onclick = () => {
+    document.getElementById("popup-overlay").style.display = "none";
+    if (onOk) onOk();
+  };
+}
 function setErr(msg){const e=document.getElementById("login-error");e.textContent=msg;e.style.display=msg?"block":"none"}
 
 async function doLogin(){
@@ -345,13 +359,14 @@ if(!isValidEmail(email)){setErr("Разрешены только адреса н
   btn.disabled=true;btn.textContent="Проверяем...";
  try{
   const result = await sbCheck(name,seat,email);
-  if(result.exists){setErr("Этот участник уже прошёл розыгрыш.");btn.disabled=false;btn.textContent="получить штуки";return}
-  if(result.emailExists){setErr("Эта почта уже использована для участия.");btn.disabled=false;btn.textContent="получить штуки";return}
-}catch(e){setErr("Ошибка соединения. Проверь интернет.");btn.disabled=false;btn.textContent="получить штуки";return}
-  user={name,seat,email};won=[];used=0;
-  btn.disabled=false;btn.textContent="получить штуки";
-  initSpin();show("screen-spin");
-}
+  if(result.full){
+    btn.disabled=false;btn.textContent="получить штуки";
+    showPopup("Приносим извинения, мерч закончился");
+    return;
+  }
+  if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить штуки";return}
+  if(result.emailExists){setErr("Эта почта уже использована для участия");btn.disabled=false;btn.textContent="получить штуки";return}
+}catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить штуки";return}
 
 function buildReel(){
   const t = document.getElementById("reel-track");
@@ -401,6 +416,7 @@ async function initSpin(){
   if (!anyLeft) {
     document.getElementById("btn-spin").disabled = true;
     setLabel("мерч закончился");
+    showPopup("Дополнительный мерч закончился. Вы получите базовый набор мерча", finish);
   } else {
     document.getElementById("btn-spin").disabled = false;
     setLabel("крутить!");
@@ -503,8 +519,9 @@ async function finish(){
   try{
     await sbInsert({name:user.name,seat:user.seat,email:user.email||'',merch_1:won[0]?.name||null,merch_2:won[1]?.name||null});
   }catch(e){toast("Ошибка сохранения! Запишите мерч вручную.",5000)}
-  document.getElementById("done-card").textContent=
-    `${user.name}, номер стола — ${user.seat}. Вы выиграли ${won.map(w=>MERCH_ACCUSATIVE[w.name]||w.name).join(", ")}`;
+  document.getElementById("done-card").textContent = won.length > 0
+    ? `${user.name}, номер стола — ${user.seat}. Вы выиграли: ${won.map(w=>MERCH_ACCUSATIVE[w.name]||w.name).join(", ")}`
+    : `${user.name}, номер стола — ${user.seat}. Вы получите базовый набор мерча`;
   show("screen-done");spinning=false;
 }
 
