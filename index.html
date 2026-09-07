@@ -352,22 +352,26 @@ async function doLogin(){
   const email=document.getElementById("inp-email").value.trim();
   const consent=document.getElementById("inp-consent").checked;
   if(!name||!seat||!email){setErr("Заполните все поля");return}
-if(!isValidEmail(email)){setErr("Разрешены только адреса на домене vtb.ru");return}
+  if(!isValidEmail(email)){setErr("Разрешены только адреса на домене vtb.ru");return}
   if(!consent){setErr("Необходимо согласие на обработку данных");return}
   setErr("");
   const btn=document.getElementById("btn-login");
   btn.disabled=true;btn.textContent="Проверяем...";
- try{
-  const result = await sbCheck(name,seat,email);
-  if(result.full){
-    btn.disabled=false;btn.textContent="получить штуки";
-    showPopup("Приносим извинения, мерч закончился");
-    return;
-  }
-  if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить штуки";return}
-  if(result.emailExists){setErr("Эта почта уже использована для участия");btn.disabled=false;btn.textContent="получить штуки";return}
-}catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить штуки";return}
-
+  try{
+    const result = await sbCheck(name,seat,email);
+    if(result.full){
+      btn.disabled=false;btn.textContent="получить штуки";
+      showPopup("Приносим извинения, мерч закончился");
+      return;
+    }
+    if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить штуки";return}
+    if(result.emailExists){setErr("Эта почта уже использована для участия");btn.disabled=false;btn.textContent="получить штуки";return}
+  }catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить штуки";return}
+  user={name,seat,email};won=[];used=0;
+  btn.disabled=false;btn.textContent="получить штуки";
+  initSpin();show("screen-spin");
+}
+  
 function buildReel(){
   const t = document.getElementById("reel-track");
   t.innerHTML = "";
