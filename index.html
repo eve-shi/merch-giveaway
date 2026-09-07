@@ -352,7 +352,7 @@ async function doLogin(){
   const email=document.getElementById("inp-email").value.trim();
   const consent=document.getElementById("inp-consent").checked;
   if(!name||!seat||!email){setErr("Заполните все поля");return}
-  if(!isValidEmail(email)){setErr("Разрешены только адреса на домене vtb.ru");return}
+  if(!isValidEmail(email)){setErr("Разрешены только адреса в домене vtb.ru");return}
   if(!consent){setErr("Необходимо согласие на обработку данных");return}
   setErr("");
   const btn=document.getElementById("btn-login");
@@ -360,8 +360,11 @@ async function doLogin(){
   try{
     const result = await sbCheck(name,seat,email);
     if(result.full){
+      try{
+        await sbInsert({name, seat, email, merch_1:null, merch_2:null});
+      }catch(e){/* still show the popup even if the sheet write fails */}
       btn.disabled=false;btn.textContent="получить штуки";
-      showPopup("Приносим извинения, мерч закончился");
+      showPopup("Приносим извинения, доступный мерч закончился");
       return;
     }
     if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить штуки";return}
