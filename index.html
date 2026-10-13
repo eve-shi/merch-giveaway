@@ -20,7 +20,9 @@ body{
   height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;
   color:#fff;background:#1a7fd4;
 }
-
+.reel-loader{position:absolute;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:14px;color:#1a1a2e}
+.reel-spinner{width:38px;height:38px;border:4px solid rgba(26,26,46,.15);border-top-color:#24A0F2;border-radius:50%;animation:reelSpin .8s linear infinite}
+@keyframes reelSpin{to{transform:rotate(360deg)}}
 .bg{
   position:fixed;inset:0;z-index:0;
   background-image:url("assets/fon.png");
@@ -216,6 +218,7 @@ padding:0 20px;
 <!-- SPIN -->
 <div id="screen-spin" class="screen">
   <div class="reel-section" id="reel-section">
+    <div class="reel-loader" id="reel-loader"><div class="reel-spinner"></div><div>Загрузка...</div></div>
     <div class="arr arr-l"><img src="assets/arrow1.svg" alt=""></div>
     <div class="arr arr-r"><img src="assets/arrow2.svg" alt=""></div>
     <div class="reel-ft"></div>
@@ -305,7 +308,7 @@ const MAX=1, ITEM_H=240;
   return re.test(email.trim());
 }
 let user=null,spinning=false,won=[],used=0;
-let stockMap={};
+let stockMap={}, stockLoaded=false;
   
 async function sbCheck(n,s,em){
   const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}&email=${encodeURIComponent(em)}`);
@@ -415,21 +418,39 @@ function setLabel(txt){document.getElementById("spin-btn-txt").textContent=txt}
 }
 
 async function initSpin(){
+  stockLoaded=false;
   document.getElementById("info-name").textContent=user.name;
   document.getElementById("info-seat").textContent=user.seat;
-  stockMap = await sbStock();
-  updateUI();buildReel();posReel(0,false,0);
-  const anyLeft = MERCH.some(m => (stockMap[m.name] ?? 0) > 0);
-  if (!anyLeft) {
-    document.getElementById("btn-spin").disabled = true;
+  const btn=document.getElementById("btn-spin");
+  const loader=document.getElementById("reel-loader");
+  btn.disabled=true;
+  setLabel("загрузка...");
+  loader.style.display="flex";
+  updateUI();
+  try{
+    const s=await sbStock();
+    if(!s||s.error)throw new Error("bad stock response");
+    stockMap=s;
+    stockLoaded=true;
+  }catch(e){
+    loader.style.display="none";
+    btn.disabled=false;
+    setLabel("повторить");
+    toast("Не удалось загрузить данные. Нажмите «повторить»",3500);
+    return;
+  }
+  buildReel();posReel(0,false,0);
+  loader.style.display="none";
+  const anyLeft=MERCH.some(m=>(stockMap[m.name]??0)>0);
+  if(!anyLeft){
+    btn.disabled=true;
     setLabel("мерч закончился");
-    showPopup("Дополнительный мерч закончился. Вы получите базовый набор мерча", finish);
-  } else {
-    document.getElementById("btn-spin").disabled = false;
+    showPopup("Дополнительный мерч закончился. Вы получите базовый набор мерча",finish);
+  }else{
+    btn.disabled=false;
     setLabel("крутить!");
   }
 }
-  
   
 function burstStars(btn){
   const r=btn.getBoundingClientRect();
@@ -456,7 +477,8 @@ function burstStars(btn){
 }
 
 function doSpin() {
-  if (spinning || used >= MAX) return;
+ if (spinning || used >= MAX) return;
+  if (!stockLoaded) { initSpin(); return; }
 
 const available = MERCH.filter(m => (stockMap[m.name] ?? 0) > 0 && !won.some(w => w.name === m.name));
 if (available.length === 0) {
@@ -495,8 +517,20 @@ if (available.length === 0) {
     });
   });
 
-  setTimeout(async () => {
-    const claim = await sbClaim(target.name);
+   setTimeout(async () => {
+    let claim;
+    try {
+      claim = await sbClaim(target.name);
+      if (!claim || (claim.ok === undefined && claim.error)) throw new Error("bad claim response");
+    } catch (e) {
+      toast("Ошибка соединения. Попробуйте крутить ещё раз", 3500);
+      spinning = false;
+      document.getElementById("btn-spin").disabled = false;
+      setLabel("крутить!");
+      posReel(0, false, 0);
+      return;
+    }
+
     if (!claim.ok) {
       stockMap[target.name] = 0;
       toast("Этот предмет только что закончился, крути ещё раз 🔄", 3000);
