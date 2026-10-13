@@ -367,24 +367,26 @@ if(!isValidFullName(name)){setErr("Введите фамилию, имя и от
   setErr("");
   const btn=document.getElementById("btn-login");
   btn.disabled=true;btn.textContent="Проверяем...";
+    let result, stock;
   try{
-    const [result, stock] = await Promise.all([
-  sbCheck(name,seat,email),
-  sbStock().catch(()=>null)
-]);
+    [result, stock] = await Promise.all([
+      sbCheck(name,seat,email),
+      sbStock().catch(()=>null)
+    ]);
+
     if(result.full){
       try{
         await sbInsert({name, seat, email, merch_1:null, merch_2:null});
       }catch(e){/* still show the popup even if the sheet write fails */}
-      btn.disabled=false;btn.textContent="получить штуки";
+      btn.disabled=false;btn.textContent="получить мерч";
       showPopup("Приносим извинения, доступный мерч закончился");
       return;
     }
-    if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить штуки";return}
-    if(result.emailExists){setErr("Эта почта уже использована для участия");btn.disabled=false;btn.textContent="получить штуки";return}
-  }catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить штуки";return}
+    if(result.exists){setErr("Этот участник уже прошёл розыгрыш");btn.disabled=false;btn.textContent="получить мерч";return}
+    if(result.emailExists){setErr("Эта почта уже использована для участия");btn.disabled=false;btn.textContent="получить мерч";return}
+  }catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить мерч";return}
   user={name,seat,email};won=[];used=0;
-  btn.disabled=false;btn.textContent="получить штуки";
+  btn.disabled=false;btn.textContent="получить мерч";
   initSpin(stock);show("screen-spin");
 }
   
