@@ -309,6 +309,12 @@ const MAX=1, ITEM_H=240;
 }
 let user=null,spinning=false,won=[],used=0;
 let stockMap={}, stockLoaded=false;
+
+  function isValidFullName(name){
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2 || parts.length > 4) return false;
+  return parts.every(p => p.length >= 2 && /^\p{L}[\p{L}'’-]*$/u.test(p));
+}
   
 async function sbCheck(n,s,em){
   const r=await fetch(`${SCRIPT_URL}?action=check&name=${encodeURIComponent(n)}&seat=${encodeURIComponent(s)}&email=${encodeURIComponent(em)}`);
@@ -350,18 +356,22 @@ function toast(msg,dur=2600){const t=document.getElementById("toast");t.textCont
 function setErr(msg){const e=document.getElementById("login-error");e.textContent=msg;e.style.display=msg?"block":"none"}
 
 async function doLogin(){
-  const name=document.getElementById("inp-name").value.trim();
+  const name=document.getElementById("inp-name").value.trim().replace(/\s+/g," ");
   const seat=document.getElementById("inp-seat").value.trim();
   const email=document.getElementById("inp-email").value.trim();
   const consent=document.getElementById("inp-consent").checked;
   if(!name||!seat||!email){setErr("Заполните все поля");return}
+if(!isValidFullName(name)){setErr("Введите фамилию, имя и отчество полностью ");return}
   if(!isValidEmail(email)){setErr("Разрешены только адреса в домене vtb.ru");return}
   if(!consent){setErr("Необходимо согласие на обработку данных");return}
   setErr("");
   const btn=document.getElementById("btn-login");
   btn.disabled=true;btn.textContent="Проверяем...";
   try{
-    const result = await sbCheck(name,seat,email);
+    const [result, stock] = await Promise.all([
+  sbCheck(name,seat,email),
+  sbStock().catch(()=>null)
+]);
     if(result.full){
       try{
         await sbInsert({name, seat, email, merch_1:null, merch_2:null});
@@ -375,7 +385,7 @@ async function doLogin(){
   }catch(e){setErr("Ошибка соединения. Проверьте интернет");btn.disabled=false;btn.textContent="получить штуки";return}
   user={name,seat,email};won=[];used=0;
   btn.disabled=false;btn.textContent="получить штуки";
-  initSpin();show("screen-spin");
+  initSpin(stock);show("screen-spin");
 }
   
 function buildReel(){
@@ -417,7 +427,7 @@ function setLabel(txt){document.getElementById("spin-btn-txt").textContent=txt}
   return items[items.length - 1]; // fallback for float rounding edge case
 }
 
-async function initSpin(){
+async function initSpin(prefetched){
   stockLoaded=false;
   document.getElementById("info-name").textContent=user.name;
   document.getElementById("info-seat").textContent=user.seat;
@@ -428,7 +438,7 @@ async function initSpin(){
   loader.style.display="flex";
   updateUI();
   try{
-    const s=await sbStock();
+    const s=(prefetched && !prefetched.error) ? prefetched : await sbStock();
     if(!s||s.error)throw new Error("bad stock response");
     stockMap=s;
     stockLoaded=true;
@@ -517,10 +527,13 @@ if (available.length === 0) {
     });
   });
 
+const claimPromise = sbClaim(target.name);
+claimPromise.catch(()=>{});
+  
    setTimeout(async () => {
     let claim;
     try {
-      claim = await sbClaim(target.name);
+      claim = await claimPromise;
       if (!claim || (claim.ok === undefined && claim.error)) throw new Error("bad claim response");
     } catch (e) {
       toast("Ошибка соединения. Попробуйте крутить ещё раз", 3500);
@@ -548,7 +561,7 @@ if (available.length === 0) {
 
     if (used >= MAX) {
       setLabel("Сохраняем...");
-      setTimeout(finish, 1000);
+      setTimeout(finish, 500);
     } else {
       spinning = false;
       document.getElementById("btn-spin").disabled = false;
@@ -596,6 +609,9 @@ function goBack(){
   document.getElementById("inp-email").value="";
   show("screen-login");
 }
+  ["assets/fon2.png","assets/fon3.png","assets/arrow1.svg","assets/arrow2.svg","assets/starr.png",
+ ...MERCH.map(m=>m.img)
+].forEach(src=>{const i=new Image();i.src=src;});
 </script>
 </body>
 </html>
