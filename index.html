@@ -403,10 +403,12 @@ if(!isValidFullName(name)){setErr("Введите фамилию, имя и от
   btn.disabled=true;btn.textContent="Проверяем...";
     let result, stock;
   try{
-    [result, stock] = await Promise.all([
-      sbCheck(name,seat,email),
-      sbStock().catch(()=>null)
-    ]);
+    const fresh = prefetchedStock && (Date.now()-prefetchedAt < 30000);
+[result, stock] = await Promise.all([
+  sbCheck(name,seat,email),
+  fresh ? Promise.resolve(prefetchedStock) : sbStock().catch(()=>null)
+]);
+    
 
     if(result.full){
       try{
@@ -648,6 +650,13 @@ function goBack(){
   ["assets/fon2.png","assets/fon3.png","assets/arrow1.svg","assets/arrow2.svg","assets/starr.png",
  ...MERCH.map(m=>m.img)
 ].forEach(src=>{const i=new Image();i.src=src;});
+  let prefetchedStock=null, prefetchedAt=0;
+function warmUp(){
+  if(Date.now()-prefetchedAt<10000) return;
+  sbStock().then(s=>{ if(s && !s.error){prefetchedStock=s; prefetchedAt=Date.now();} }).catch(()=>{});
+}
+warmUp();
+document.getElementById("inp-email").addEventListener("focus", warmUp);
 </script>
 </body>
 </html>
